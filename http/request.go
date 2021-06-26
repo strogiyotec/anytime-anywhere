@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -34,7 +35,7 @@ func ReserverTime() {
 		day := time.Now().Weekday()
 		nextDate := nextDate(day)
 		fmt.Printf("Next booking date is %s\n", nextDate)
-		if alreadyCreated(nextDate) {
+		if alreadyExists(nextDate) {
 			fmt.Printf("Reservation for %s already exists\n", nextDate)
 		} else {
 			reservationData := reservationTime(nextDate, day)
@@ -53,12 +54,12 @@ func ReserverTime() {
 }
 
 //check if reservation already exists
-func alreadyCreated(nextDate string) bool {
+func alreadyExists(nextDate string) bool {
 	req, err := http.NewRequest("GET", GET_RESERVATION_API_URL, nil)
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("Cookie", "session=eyJ1c2VyIjoiNjA3MGU5OWRkYjhhZmYwMDA2YmJlZTg0In0=; session.sig=Mh7UlBMpHEGcGn4orX9fp9y3Ta8")
+	req.Header.Set("Cookie", userCookies())
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -76,10 +77,11 @@ func alreadyCreated(nextDate string) bool {
 	return reservations[0].Get("date").String() == nextDate
 }
 
-func sendReservationRequest(data *reservationData) {
+//send an actual request to make a reservation
+func sendReservationRequest(payload *reservationData) {
 	postData, _ := json.Marshal(map[string]interface{}{
-		"club_ident": data.clubIdent,
-		"start_int":  data.startInt,
+		"club_ident": payload.clubIdent,
+		"start_int":  payload.startInt,
 	})
 	requestBody := bytes.NewBuffer(postData)
 	req, err := http.NewRequest("POST", RESERVE_TIME_API_URL, requestBody)
@@ -87,7 +89,7 @@ func sendReservationRequest(data *reservationData) {
 		panic(err)
 	}
 	//TODO:move it to env variables
-	req.Header.Set("Cookie", "session=eyJ1c2VyIjoiNjA3MGU5OWRkYjhhZmYwMDA2YmJlZTg0In0=; session.sig=Mh7UlBMpHEGcGn4orX9fp9y3Ta8")
+	req.Header.Set("Cookie", userCookies())
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -98,6 +100,7 @@ func sendReservationRequest(data *reservationData) {
 	fmt.Println("response Status:", resp.Status)
 }
 
+//return a payload to create a reservation
 func reservationTime(nextDate string, day time.Weekday) *reservationData {
 	response, e := http.Get(GET_TIMES_API_URL)
 	if e != nil {
@@ -117,6 +120,12 @@ func reservationTime(nextDate string, day time.Weekday) *reservationData {
 		}
 	}
 	return nil
+}
+
+func userCookies() string {
+	token := os.Getenv("ANYTIME_SESSION_TOKEN")
+	sig := os.Getenv("ANYTIME_SESSION_SIG")
+	return fmt.Sprintf("session=%s; session.sig=%s", token, sig)
 }
 
 //convert date to the format for anytime fitness api
