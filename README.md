@@ -19,9 +19,12 @@ When you got these two cookies follow the instruction below
     - `export ANYTIME_SESSION_SIG="YOU_SIG"`
 4. Run `go run main.go`
 5. By default it will try to make an appoint for MONDAY,WEDNESDAY,FRIDAY(my gym days) at 9:00 A.M
+6. As **AnytimeFitness** only allows booking two days in advance , it only possible to book one appointment in one day(appointment for Wednesday will be available on Monday and so on). So you can make a cron job that will run on days you are interested in
 
 ## TODO
 
 1. [ ] Login (maybe ?)
 2. [X] Move session to env variables
+3. [ ] Make preferred days configurable
+4. [ ] Make preferred time configurable
 
