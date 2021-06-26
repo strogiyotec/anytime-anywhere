@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	GET_TIMES_API_URL = "https://api.muuvlabs.com/anytime/clubs/2148"
+	GET_TIMES_API_URL    = "https://api.muuvlabs.com/anytime/clubs/2148"
+	RESERVE_TIME_API_URL = "https://api.muuvlabs.com/anytime/reservations"
 )
 
 type reservationData struct {
@@ -38,7 +39,7 @@ func sendReservationRequest(data *reservationData) {
 		"start_int":  data.startInt,
 	})
 	requestBody := bytes.NewBuffer(postData)
-	req, err := http.NewRequest("POST", "https://api.muuvlabs.com/anytime/reservations", requestBody)
+	req, err := http.NewRequest("POST", RESERVE_TIME_API_URL, requestBody)
 	if err != nil {
 		panic(err)
 	}
@@ -72,6 +73,7 @@ func reservationTime(day time.Weekday) *reservationData {
 			startInt, _ := strconv.ParseInt(timeSlot.Get("start_int").String(), 10, 64)
 			return &reservationData{clubIdent: int(clubIdent), startInt: startInt}
 		}
+		//TODO MONDAY,WEDNESDAY
 	}
 	return nil
 }
