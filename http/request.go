@@ -14,48 +14,52 @@ import (
 )
 
 const (
-	GET_TIMES_API_URL       = "https://api.muuvlabs.com/anytime/clubs/2148"
-	RESERVE_TIME_API_URL    = "https://api.muuvlabs.com/anytime/reservations"
-	GET_RESERVATION_API_URL = "https://api.muuvlabs.com/anytime/reservations?include_club=0&per_page=2&ran=1624740618984"
-	PREFERRED_TIME          = "9:00 AM"
+	GetTimesApiUrl       = "https://api.muuvlabs.com/anytime/clubs/2148"
+	ReserveTimeApiUrl    = "https://api.muuvlabs.com/anytime/reservations"
+	GetReservationApiUrl = "https://api.muuvlabs.com/anytime/reservations?include_club=0&per_page=2&ran=1624740618984"
+	PreferredTime        = "9:00 AM"
 )
 
 type reservationData struct {
-	clubIdent int
-	startInt  int64
+	clubIdent int   // club id
+	startInt  int64 //start time
 }
 
-func ReserverTime() {
+func ReserveTime() {
 	currentDay := time.Now().Weekday()
 	if currentDay != time.Monday &&
 		currentDay != time.Wednesday &&
 		currentDay != time.Saturday {
 		fmt.Println("The reservation days for me are Monday,Wednesday,Saturday")
 	} else {
-		day := time.Now().Weekday()
-		nextDate := nextDate(day)
+		nextDate := nextDate()
 		fmt.Printf("Next booking date is %s\n", nextDate)
 		if alreadyExists(nextDate) {
 			fmt.Printf("Reservation for %s already exists\n", nextDate)
 		} else {
-			reservationData := reservationTime(nextDate, day)
+			reservationData := reservationTime(nextDate)
 			if reservationData == nil {
 				fmt.Printf(
 					"There is no available time slot at %s on %s \n",
-					PREFERRED_TIME,
+					PreferredTime,
 					nextDate,
 				)
 			} else {
-				fmt.Printf("Reservation made at %v", reservationData)
+				sendReservationRequest(reservationData)
+				//check if it really was saved
+				if alreadyExists(nextDate) {
+					fmt.Printf("Reservation made at %v", reservationData)
+				} else {
+					fmt.Println("anytime tried to make a reservation, but it failed")
+				}
 			}
-			//	sendReservationRequest(reservationData)
 		}
 	}
 }
 
 //check if reservation already exists
 func alreadyExists(nextDate string) bool {
-	req, err := http.NewRequest("GET", GET_RESERVATION_API_URL, nil)
+	req, err := http.NewRequest("GET", GetReservationApiUrl, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -84,11 +88,10 @@ func sendReservationRequest(payload *reservationData) {
 		"start_int":  payload.startInt,
 	})
 	requestBody := bytes.NewBuffer(postData)
-	req, err := http.NewRequest("POST", RESERVE_TIME_API_URL, requestBody)
+	req, err := http.NewRequest("POST", ReserveTimeApiUrl, requestBody)
 	if err != nil {
 		panic(err)
 	}
-	//TODO:move it to env variables
 	req.Header.Set("Cookie", userCookies())
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
@@ -101,8 +104,8 @@ func sendReservationRequest(payload *reservationData) {
 }
 
 //return a payload to create a reservation
-func reservationTime(nextDate string, day time.Weekday) *reservationData {
-	response, e := http.Get(GET_TIMES_API_URL)
+func reservationTime(nextDate string) *reservationData {
+	response, e := http.Get(GetTimesApiUrl)
 	if e != nil {
 		panic(e)
 	}
@@ -113,7 +116,7 @@ func reservationTime(nextDate string, day time.Weekday) *reservationData {
 	for _, timeSlot := range slots {
 		date := timeSlot.Get("date").String()
 		//My preferred time is 9:00 A.M because it's a hot summer and and it's not good to go out later
-		if date == nextDate && timeSlot.Get("start_time").String() == PREFERRED_TIME {
+		if date == nextDate && timeSlot.Get("start_time").String() == PreferredTime {
 			clubIdent, _ := strconv.ParseInt(timeSlot.Get("club_ident").String(), 10, 32)
 			startInt, _ := strconv.ParseInt(timeSlot.Get("start_int").String(), 10, 64)
 			return &reservationData{clubIdent: int(clubIdent), startInt: startInt}
@@ -129,7 +132,7 @@ func userCookies() string {
 }
 
 //convert date to the format for anytime fitness api
-func nextDate(currentDay time.Weekday) string {
+func nextDate() string {
 	currentTime := time.Now().AddDate(0, 0, 2)
 	month := strconv.Itoa(int(currentTime.Month()))
 	if len(month) == 1 {

@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	http.ReserverTime()
+	http.ReserveTime()
 }
