@@ -1,6 +1,10 @@
 # anytime-anywhere
 Script to automate the booking process for **AnytimeFitness Gym**
 
+
+## Status
+From the First July Gym Booking were abandoned. Everything goes to normal so no need in automation booking anymore 
+
 ## Motivation
 I got tired from making my gym appoints (COVID is still a thing). This cli will do it for me
 
